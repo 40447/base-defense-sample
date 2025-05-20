@@ -20,4 +20,4 @@ HAL大阪の２年制課程にて制作した、3Dロボットアクションゲ
 
 ## 動画・ダウンロード
 - プレイ動画: https://xgf.nu/iV08U
-- 完成品ZIP： httpsxgf.nuo00N6
+- 完成品ZIP：https://xgf.nu/o00N6
