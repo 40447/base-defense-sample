@@ -16,7 +16,7 @@ static int currentPUNCH = 1;
 
 class PUNCH : public CGameObject {
 private:
-    // 渲染相關
+    
     CStaticMesh m_Mesh;
     CStaticMeshRenderer m_StaticMeshRenderer;
 
@@ -24,8 +24,7 @@ private:
     Vector3 m_vAABBMin;
     Vector3 m_vAABBMax;
 
-	// 第二把槍
-
+	
 	Vector3 m_vAABBMin2;
 	Vector3 m_vAABBMax2;
 
@@ -51,13 +50,13 @@ private:
 
     CShader m_Shader;
 public:
-    // 單例模式
+   
     static PUNCH& GetInstance() {
-        static PUNCH instance; // 保證只有一個實例
+        static PUNCH instance; 
         return instance;
     }
 
-    // 基本方法
+   
     void Init() override;
     void Update() override;
     void Draw() override;
@@ -85,4 +84,4 @@ public:
     void SetPosition2(const Vector3& position) { m_Position2 = position; }
 
 };
-PUNCH* GetPUNCH(); // 全局訪問方法
+PUNCH* GetPUNCH(); 
