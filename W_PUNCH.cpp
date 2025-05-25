@@ -13,7 +13,14 @@
 
 using namespace DirectX;
 
-
+//=============================================================
+// W_PUNCH.cpp
+// プレイヤーの近接攻撃（パンチ）制御クラス
+// ・左右拳モデルの位置・回転制御
+// ・出拳アニメーション
+// ・マウス操作による左右交互パンチ処理
+// ・AABB（当たり判定）動的生成
+//=============================================================
 float PUNCHDistance = -20.0f;
 
 // 
@@ -198,17 +205,17 @@ void PUNCH::Update()
 			}
 		}
 	}
-
+// パンチ中の処理（位置を前方に移動し、AABB更新）
 	if (isPunching)
 	{
 		// 
 		float angle = m_Rotation.y;
 
-		// 
+		  // プレイヤーの向きに合わせて拳を前方に押し出す
 		Vector3 forwardDir = Vector3(sin(angle), 0.0f, cos(angle)); // 
 		forwardDir.Normalize();
 		// 
-		// 這
+		// 
 		float moveSpeed = -50.0f;
 		m_Position.x += forwardDir.x * moveSpeed;
 		m_Position.y += forwardDir.y * moveSpeed;
@@ -217,7 +224,7 @@ void PUNCH::Update()
 		PUNCHPosition.y += forwardDir.y * moveSpeed;
 		PUNCHPosition.z += forwardDir.z * moveSpeed;
 
-	
+	// 当たり判定用のAABB更新
 		m_vAABBMin = Vector3(
 			PUNCHPosition.x - halfW,
 			PUNCHPosition.y - 10 - halfH,
