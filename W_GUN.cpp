@@ -9,7 +9,13 @@
 #include "Enemy.h"
 #include"LUCK.h"
 
-
+//=============================================================
+// W_GUN.cpp
+// プレイヤーの両腕に装着された銃の制御クラス
+// ・プレイヤーの位置／回転に合わせた銃モデルの更新
+// ・右クリックでロックオン処理
+// ・LUCK（追尾型ロックエフェクト）のトリガー
+//=============================================================
 using namespace DirectX;
 
 bool GUNUSE = false;
@@ -74,6 +80,10 @@ void GUN::Update()
 	Vector3 rightDirection = Vector3::Right;
 	Vector3 offset = Vector3::Transform(rightDirection, rotationMatrix);
 
+	
+// プレイヤーの右方向に距離を保って銃を配置
+
+	
 	m_Position = *playerPos + offset * GUNDistance;
 	m_Position.y = playerPos->y;
 
@@ -83,6 +93,8 @@ void GUN::Update()
 	
 	Matrix gunRotationMatrix = Matrix::CreateRotationY(m_Rotation.y);
 	Vector3 forwordDirection = Vector3::Forward;
+
+	// 銃口位置を前方方向に一定距離ずらして設定
 	Vector3 shootOffset = Vector3::Transform(forwordDirection, gunRotationMatrix) * 40.0f;
 	m_ShootPosition = m_Position + shootOffset;
 
@@ -212,6 +224,14 @@ void GUN::Dispose()
 
 }
 
+
+//===============================
+// LUCKシステム：敵に近づくと自動で演出をトリガー
+// プレイヤー・銃・敵の位置関係に基づいて向きを調整
+//===============================
+
+
+
 void GUN::Luck()
 {
 	
@@ -243,7 +263,7 @@ void GUN::Luck()
 	float distanceToEnemy2 = (*enemyPos - *gunPos1).Length();
 	float distanceToEnemy3 = (*enemyPos - *gunPos2).Length();
 
-
+ // 近すぎる場合は演出しない
 	if (distanceToEnemy2 < minLockDistance && distanceToEnemy3 < minLockDistance)
 	{
 		return;
@@ -266,7 +286,7 @@ void GUN::Luck()
 		Vector3 vPEDir = *enemyPos - *playerPos;
 		vPEDir.Normalize(); 
 
-		
+		// プレイヤーと銃の向きを敵方向に滑らかに補正
 		float angleY = atan2(vGUNDir.x, vGUNDir.z);
 		float angleX = atan2(vGUNDir.y, sqrt(vGUNDir.x * vGUNDir.x + vGUNDir.z * vGUNDir.z));
 
