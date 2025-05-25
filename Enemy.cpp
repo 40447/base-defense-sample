@@ -7,6 +7,10 @@
 #include<iostream>
 #include"CPlayer.h"
 
+//============================================================
+// 敵キャラクターのAIロジック（ステートマシン）
+// 状態：Idle → Patrol → Chase → Attack / Retreat 切替
+//============================================================
 
 float desiredFiringDistance = 60;  
 float distanceBuffer = 50;         
@@ -176,8 +180,13 @@ void Enemy::Update()
             break;
         }
 
+
+    // プレイヤーに近づく追跡行動
+    // 一定距離に入ると攻撃または撤退に切り替え
         case EnemyState::Chase:
         {
+
+		
 			enemyattack = false;
             if (distanceToPlayer > attackDistance + distanceBuffer)
             {
@@ -221,7 +230,7 @@ void Enemy::Update()
             }
             break;
         }
-
+    // 攻撃モード。射撃フラグを立てて攻撃処理トリガー。
         case EnemyState::Attack:
         {
             // 面向玩家
@@ -249,7 +258,7 @@ void Enemy::Update()
             }
             break;
         }
-
+   // プレイヤーとの距離が近すぎる場合に後退する。
         case EnemyState::Retreat:
         {
 
