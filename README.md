@@ -22,10 +22,10 @@ HAL大阪の２年制課程にて制作した、3Dロボットアクションゲ
 - プレイ動画:
 -https://drive.google.com/file/d/139DJ7kpUWEF8CIcsMiEY360uTwVGH_nD/view?usp=sharing
 
- **  https://xgf.nu/iV08U
+////https://xgf.nu/iV08U
 
 
 - 完成品ZIP：
 - https://drive.google.com/drive/folders/1yoLZX_avK8zUT3EPCaLswbLd8MiXHpUk?usp=sharing
-- 
-** https://xgf.nu/o00N6
+
+  //// https://xgf.nu/o00N6
