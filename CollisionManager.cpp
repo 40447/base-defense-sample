@@ -41,7 +41,9 @@ static bool OverlapAABB
 
     return true;
 }
-
+//------------------------------------------------------------
+// 弾・近接・敵弾の当たり判定（プレイヤー／敵）
+//------------------------------------------------------------
 void CollisionManager::CheckCollision()
 {
     
@@ -100,13 +102,13 @@ void CollisionManager::CheckCollision()
     {
         if (enemybulletLife2[i]==1) {
             if (OverlapAABB(enemyshootMin[i], enemyshootMax[i], playerMin, playerMax)) {
-            
+              // 通常弾が敵に命中
                 enemyshoot->m_EnemyShootAlive[i] = 0;
 
 
                 Vector3 playerForward = Vector3(sin(playerRotation.y), 0.0f, cos(playerRotation.y)); 
                 playerForward.Normalize(); 
-
+              
                 Vector3 explosionPosition = playerpos + playerForward * -30.0f; 
 
 				hurt = true;
@@ -134,7 +136,7 @@ void CollisionManager::CheckCollision()
                
 
                 
-
+             // 敵の向きに基づいて爆発位置を少し後ろに調整
                 Vector3 exPosition = enemypos + enemyForward * -15.0f; 
                 explosion->g_Ex_isAlive[i] = 1;
                 explosion->g_ExPos[i] = exPosition;
@@ -143,7 +145,7 @@ void CollisionManager::CheckCollision()
                // std::cout << "explosion" << std::endl;
                
               
-                break;
+                break;// 命中後、ループ打ち切り
             }
         }
         if (bulletLife2[i] == 1) {
@@ -177,6 +179,8 @@ void CollisionManager::CheckCollision()
         
         if (!m_bPunchCollideLastFrame)
         {
+
+		 // 前のフレームで当たっていなければ命中処理
             enemy->SetAlive(false);
             score = 0;
             Vector3 exPosition = enemypos + enemyForward * -15.0f;
@@ -224,13 +228,14 @@ void CollisionManager::CheckCollision()
     }
    
     if (score >= 6) {
-        enemy->SetAlive(false);
+	    
+        enemy->SetAlive(false); // 敵に一定ダメージを与えたら撃破
         Vector3 enemyForward = Vector3(sin(enemyRot.y), 0.0f, cos(enemyRot.y)); 
         enemyForward.Normalize(); 
 
         Vector3 exPosition = enemypos + enemyForward * -15.0f; 
 
-        for (int i = 0; i < 100; i++) {
+        for (int i = 0; i < 100; i++) { // 大規模爆発エフェクト
             explosion->g_Ex_isAlive[i] = 1;
             explosion->g_ExPos[i] = exPosition;
            // explosion->g_ExPos[i].y = exPosition.y + 10;
