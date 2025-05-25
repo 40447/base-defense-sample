@@ -12,7 +12,7 @@
 
 extern bool GUNUSE;
 
-Vector3 velocity = Vector3::Zero; //
+Vector3 velocity = Vector3::Zero; // 現在の移動速度（慣性シミュレーション用）
 const float inertiaFactor = 0.01f; //慣性係数
 const float friction = 0.95f;     // 摩擦
 const float dashInertiaFactor = 0.3f; // 
@@ -24,7 +24,7 @@ CPlayer::CPlayer() :
     m_vDir(0.0f, 0.0f, 1.0f),
     turnSpeed(0.02f),
     moveSpeed(1.0f),
-    dashCooldown(0.3f),
+    dashCooldown(0.3f), // ダッシュの再使用までの待機時間
     returnSpeed(2.0f),
     dashSpeed(2.0f),
     dashDistance(10.0f),
@@ -174,6 +174,12 @@ void CPlayer::Dispose() {
   
 }
 
+
+//------------------------------------------------------------
+// プレイヤーの移動処理（慣性付き）
+//------------------------------------------------------------
+
+
 void CPlayer::Move() {
     //
     float angle = m_Rotation.y;
@@ -208,12 +214,20 @@ void CPlayer::Move() {
     
     m_Position += moveDir;
 
-    velocity += moveDir * inertiaFactor; //方向に応じて速度を加える
-    velocity *= friction; //摩擦力に応じて減速する
+    velocity += moveDir * inertiaFactor; // 移動方向に応じて速度を加える（慣性効果）
+    velocity *= friction;                // 摩擦係数により速度を減衰させる
     m_Position += velocity; //
 }
 
-
+//======================
+// ダッシュ処理の流れ
+//======================
+// 1. キー入力確認（SPACE）
+// 2. ダッシュ可能チェックと距離制限
+// 3. 方向決定（WASD or 前方）
+// 4. 一定距離までダッシュ移動
+// 5. 垂直ジャンプ処理（ジャンプ中のみY軸加算）
+// 6. 地面に戻ったらジャンプ解除
 void CPlayer::Dashing() {
 
 
