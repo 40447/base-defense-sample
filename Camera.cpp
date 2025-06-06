@@ -36,41 +36,41 @@ void Camera::Dispose()
 
 void Camera::Update()
 {
-
-	
+	// プレイヤー取得
 	CPlayer* player = CGame::GetInstance().GetPlayer();
 
+	// プレイヤーが存在しない場合、処理を中断
 	if (!player) return;
 
-
+	// プレイヤーの位置を取得
 	Vector3 playerPos = *player->GetPosition();
 
+	// プレイヤーの進行方向を取得し、正規化
 	Vector3 vPlayerDir = player->GetDirection();
 	vPlayerDir.Normalize();
 
-	
-	float cameraDistance = 10.0f; 
-	float cameraHeight = 10.0f;    
+	// カメラの距離と高さを設定
+	float cameraDistance = 10.0f;  // プレイヤーとの距離
+	float cameraHeight = 10.0f;    // プレイヤーより上の高さ
 
-	
-	m_vEye= playerPos  - vPlayerDir * cameraDistance;
+	// カメラの視点（Eye）の位置を計算
+	m_vEye = playerPos - vPlayerDir * cameraDistance;
 	m_vEye.y = playerPos.y + cameraHeight;
-	
 
+	// 水平方向のプレイヤー進行方向を作成（Y軸成分を無視）
 	Vector3 horizontalDir = Vector3(vPlayerDir.x, 0.0f, vPlayerDir.z);
 	horizontalDir.Normalize();
 
-	
+	// カメラの注視点（Look）を計算（プレイヤー前方を見る）
 	m_vLook = playerPos + horizontalDir * 5.0f;
-	m_vLook.y = playerPos.y + cameraHeight;	
+	m_vLook.y = playerPos.y + cameraHeight;
 
+	// 上方向ベクトル（Y軸）
 	Vector3 up = Vector3(0.0f, 1.0f, 0.0f);
+
+	// ビュー行列を作成
 	m_ViewMatrix = Matrix::CreateLookAt(m_vEye, m_vLook, up);
-
-
-
 }
-
 
 void Camera::Draw()
 {
