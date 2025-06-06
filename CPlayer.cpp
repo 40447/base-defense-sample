@@ -88,59 +88,66 @@ void CPlayer::Init() {
 
 void CPlayer::Update() {
 
-
+    // カメラの参照を取得
     Camera* cmaera = GetCamera();
     Vector3 HURTP = cmaera->GetLook();
+
+    // ガラスエフェクト管理用ポインタ取得
     Glass* glass = Getglass();
+
+    // プレイヤーの移動処理
     Move();
-	
+
+    // ダッシュ処理
     Dashing();
 
-    ///position<450
+    /// プレイヤーの行動可能範囲制限（半径450以内）
     float radius = 450.0f;
     float distanceSquared = m_Position.x * m_Position.x + m_Position.z * m_Position.z;
 
+    // 距離が範囲外の場合、円周上に位置を補正
     if (distanceSquared > radius * radius) {
-        float distance = sqrt(distanceSquared);//平方根
+        float distance = sqrt(distanceSquared); // √(x^2 + z^2)
         m_Position.x = (m_Position.x / distance) * radius;
         m_Position.z = (m_Position.z / distance) * radius;
     }
- 
 
+    // AABB（当たり判定ボックス）設定
     float halfW = 40.0f * 0.5f;
-    float halfH =100.0f * 0.5f;
+    float halfH = 100.0f * 0.5f;
     float halfD = 40.0f * 0.5f;
-    m_vAABBMin = Vector3
 
-    (   m_Position.x - halfW,
+    m_vAABBMin = Vector3(
+        m_Position.x - halfW,
         m_Position.y - halfH,
-        m_Position.z - halfD);
-    m_vAABBMax = Vector3
-    
-    (   m_Position.x + halfW,
-        m_Position.y + halfH,
-        m_Position.z + halfD);
+        m_Position.z - halfD
+    );
 
-  
+    m_vAABBMax = Vector3(
+        m_Position.x + halfW,
+        m_Position.y + halfH,
+        m_Position.z + halfD
+    );
+
+    // ワールド行列の更新
     UpdateWorldMatrix();
 
-  
-    
+    // プレイヤーのHPが50以下なら、ガラス破片エフェクトを100個生成
     for (int i = 0; i < 100; i++) {
 
-        if (PLAYERHP<=50) {
+        if (PLAYERHP <= 50) {
+            // プレイヤーの前方向ベクトルを計算（Y軸回転から）
+            Vector3 playerForward = Vector3(sin(m_Rotation.y), 0.0f, cos(m_Rotation.y));
+            playerForward.Normalize();
 
-            Vector3 playerForward = Vector3(sin(m_Rotation.y), 0.0f, cos(m_Rotation.y)); 
-            playerForward.Normalize(); 
+            // プレイヤーの背後35の位置に破片を発生
+            Vector3 explosionPosition = m_Position + playerForward * -35.0f;
 
-            Vector3 explosionPosition = m_Position + playerForward * -35.0f; 
-
+            // 破片エフェクトの初期化
             glass->glassisAlive[i] = 1;
             glass->glassPos[i] = explosionPosition;
             glass->glassFlag[i] = 0;
-
         }
-       
     }
 }
 
@@ -230,114 +237,103 @@ void CPlayer::Move() {
 // 6. 地面に戻ったらジャンプ解除
 void CPlayer::Dashing() {
 
-
+    // 累積ダッシュ距離（静的変数：呼び出し間で保持される）
     static float dashDistanceCovered = 0.0f; 
-    const float maxDashDistance = 50.0f;   
+    const float maxDashDistance = 50.0f;     // ダッシュ最大距離
 
-    static float verticalVelocity = 0.0f; 
-    const float jumpHeight = 8.0f;        
+    static float verticalVelocity = 0.0f;    // 垂直方向の速度
+    const float jumpHeight = 8.0f;           // ジャンプ高さ
 
-    const float gravity = -9.8f;          
+    const float gravity = -9.8f;             // 重力加速度（負方向）
+
+    static float baseHeight = m_Position.y;  // 地面の高さ基準（Y座標）
+    static bool jump = false;                // ジャンプ中フラグ
+    static bool canDash = true;              // ダッシュ可能フラグ
+    static bool canjump = true;              // ジャンプ可能フラグ（未使用）
 
     
-    static float baseHeight = m_Position.y; 
-	static bool jump = false; 
-	static bool canDash = true; 
-	static bool canjump = true;
 
-  //  if (!CDirectInput::GetInstance().CheckKeyBuffer(DIK_SPACE)) {
-  //     
-		//canjump = true;
-  //  }
+    // スペースキー押下時、かつダッシュ可能
+    if (CDirectInput::GetInstance().CheckKeyBuffer(DIK_SPACE) && canDash /*&& canjump*/) {
 
-    if (CDirectInput::GetInstance().CheckKeyBuffer(DIK_SPACE)&&canDash/*&&canjump*/) {
-        // 上限に達した場合は、終了する。
-
-     
-		
-
+        // 既に最大距離まで移動していたら処理終了
         if (dashDistanceCovered >= maxDashDistance) {
-            //m_Position.y = baseHeight; // キャラクターの高さを基準高さに設定する
-            //jump = false;              
-            dashDistanceCovered = 0.0f; 
+            dashDistanceCovered = 0.0f;
             return;
-            
         }
 
+        // ジャンプ開始初期化（1回だけ実行）
         if (!jump) {
-
-            baseHeight = m_Position.y; 
-            verticalVelocity = sqrt(2.0f * -gravity * jumpHeight); 
-            jump = true; 
+            baseHeight = m_Position.y;
+            verticalVelocity = sqrt(2.0f * -gravity * jumpHeight); // 重力から初速計算
+            jump = true;
         }
 
-        
+        // プレイヤーの向き（Y軸回転）から前後左右ベクトルを計算
         float angle = m_Rotation.y;
 
-        
-        Vector3 forwardDir = Vector3(sin(angle), 0.0f, cos(angle)); 
-        Vector3 rightDir = Vector3(cos(angle), 0.0f, -sin(angle));  
-        
-        Vector3 dashDir = Vector3::Zero;
+        Vector3 forwardDir = Vector3(sin(angle), 0.0f, cos(angle));      // 前方向
+        Vector3 rightDir = Vector3(cos(angle), 0.0f, -sin(angle));       // 右方向
 
-        
+        Vector3 dashDir = Vector3::Zero;  // 実際のダッシュ方向
+
+        // 入力キーによって dashDir に方向ベクトルを加算
         if (CDirectInput::GetInstance().CheckKeyBuffer(DIK_A)) {
-            dashDir += rightDir;  
+            dashDir += rightDir;   // 左移動
         }
         if (CDirectInput::GetInstance().CheckKeyBuffer(DIK_D)) {
-            dashDir -= rightDir;  
+            dashDir -= rightDir;   // 右移動
         }
         if (CDirectInput::GetInstance().CheckKeyBuffer(DIK_W)) {
-            dashDir -= forwardDir;  
+            dashDir -= forwardDir; // 前進
         }
         if (CDirectInput::GetInstance().CheckKeyBuffer(DIK_S)) {
-            dashDir += forwardDir;  
+            dashDir += forwardDir; // 後退
         }
 
-        
+        // 入力が無ければ前進をデフォルトとする
         if (dashDir == Vector3::Zero) {
             dashDir = forwardDir;
         }
 
-		dashDir.Normalize(); 
-       
-		
+        // 正規化して方向ベクトルに変換
+        dashDir.Normalize();
+
+        // 一歩分の移動量を計算（速度を掛ける）
         Vector3 dashStep = dashDir * dashSpeed;
         float stepDistance = dashStep.Length();
 
-        
+        // 残りのダッシュ距離を超えないよう調整
         if (dashDistanceCovered + stepDistance > maxDashDistance) {
             float remainingDistance = maxDashDistance - dashDistanceCovered;
             dashStep = dashDir * remainingDistance;
             stepDistance = remainingDistance;
         }
 
-        
+        // 実際に移動する
         m_Position += dashStep;
         dashDistanceCovered += stepDistance;
-       
-       
+
+        // ダッシュによる慣性を加える
         velocity += dashDir * dashInertiaFactor;
     }
     else {
-        
+        // スペースキーを離したら距離カウントをリセット
         dashDistanceCovered = 0.0f;
     }
 
-     
+    // ジャンプ処理（Y方向移動と重力）
     if (jump) {
-        m_Position.y += verticalVelocity * 0.05f; 
-        verticalVelocity += gravity * 0.05f;     
+        m_Position.y += verticalVelocity * 0.05f;  // 垂直移動
+        verticalVelocity += gravity * 0.05f;       // 重力適用
 
-    
+        // 地面まで戻ったら着地
         if (m_Position.y <= baseHeight) {
-            m_Position.y = baseHeight; 
-            verticalVelocity = 0.0f;  
+            m_Position.y = baseHeight;
+            verticalVelocity = 0.0f;
 
-
-        
-                jump = false;
-                canjump = false;
+            jump = false;
+            canjump = false;
         }
     }
 }
