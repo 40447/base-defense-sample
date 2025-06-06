@@ -73,145 +73,126 @@ float deltaTime = 0.016f;
 
 void Enemy::Update()
 {
+    // 敵が死亡中の場合の処理
+    if (!isAlive) {
+        respawnTimer += deltaTime;
 
+        // AABB をリセット（当たり判定無効化）
+        m_vAABBMin = Vector3::Zero;
+        m_vAABBMax = Vector3::Zero;
 
-	if (!isAlive) {
-		
-		respawnTimer += deltaTime;
-		//  AABB clear
-		m_vAABBMin = Vector3::Zero;
-		m_vAABBMax = Vector3::Zero;
+        // 一定時間経過で再出現
+        if (respawnTimer >= respawnDelay) {
+            respawnTimer = 0.0f;
+            Respawn();  // 敵をリセット・再配置
+        }
+        return;
+    }
 
+    // プレイヤー情報の取得
+    CPlayer* player = GetPlayer();
 
-		//m_Position = Vector3::Zero;
-
-
-		
-		if (respawnTimer >= respawnDelay) {
-			respawnTimer = 0.0f; 
-			Respawn();
-		}
-		return; 
-	}
-
-	CPlayer* player = GetPlayer();
-	
     if (!player)
     {
-        
+        // プレイヤーがいなければ待機
         m_State = EnemyState::Idle;
     }
     else
     {
+        // プレイヤーまでの距離を計算
         Vector3 playerPos = *player->GetPosition();
         Vector3 toPlayer = playerPos - m_Position;
         float distanceToPlayer = toPlayer.Length();
 
-       
+        // 敵の現在の状態による行動切替
         switch (m_State)
         {
+        // 【待機状態】何もしない。プレイヤーが近づくと追跡開始
         case EnemyState::Idle:
         {
-			enemyattack = false;
-            //do nothing 
-            // <300， Chase
-            if (distanceToPlayer < 300.0f)
-            {
+            enemyattack = false;
+
+            // プレイヤーが300以内に入ったら追跡開始
+            if (distanceToPlayer < 300.0f) {
                 m_State = EnemyState::Chase;
-				
             }
             break;
         }
 
+        // 【巡回状態】範囲内をランダム移動し、プレイヤーが来たら切替
         case EnemyState::Patrol:
-
         {
-			enemyattack = false;
-			//std::cout << "Enemy is patrolling!" << std::endl;
+            enemyattack = false;
 
-          
-
-            // no player
             if (!m_HasPatrolTarget)
             {
-               
+                // ランダムな角度・距離から移動先を生成
                 float angle = RandomRange(0.0f, DirectX::XM_2PI);
                 float radius = RandomRange(0.0f, m_PatrolRange);
 
-               
                 float randomX = cosf(angle) * radius;
                 float randomZ = sinf(angle) * radius;
 
-               
-                m_PatrolTarget.x = randomX;
-                m_PatrolTarget.y = 0.0f;
-                m_PatrolTarget.z = randomZ;
-
+                m_PatrolTarget = Vector3(randomX, 0.0f, randomZ);
                 m_HasPatrolTarget = true;
             }
             else
             {
-               
+                // 目標地点まで移動
                 Vector3 dir = m_PatrolTarget - m_Position;
                 float dist = dir.Length();
-               
-               
-                if (dist < 10.0f)
-                {
-                    m_HasPatrolTarget = false;
-                }
-                else
-                {
-                   
+
+                if (dist < 10.0f) {
+                    m_HasPatrolTarget = false;  // 到達したら次へ
+                } else {
                     dir.Normalize();
                     m_Position += dir * (m_PatrolSpeed * deltaTime);
 
+                    // 向き補正
                     float yaw = atan2f(dir.x, dir.z);
-                    yaw += DirectX::XM_PI; 
+                    yaw += DirectX::XM_PI;
                     m_Rotation.y = yaw;
                 }
             }
 
-           
-            if (distanceToPlayer < engageDistance)
-            {
+            // プレイヤー接近で追跡に切替
+            if (distanceToPlayer < engageDistance) {
                 m_State = EnemyState::Chase;
             }
             break;
         }
 
-
-    // プレイヤーに近づく追跡行動
-    // 一定距離に入ると攻撃または撤退に切り替え
+        // 【追跡状態】プレイヤーとの距離を維持しつつ接近または攻撃
         case EnemyState::Chase:
         {
+            enemyattack = false;
 
-		
-			enemyattack = false;
             if (distanceToPlayer > attackDistance + distanceBuffer)
             {
+                // プレイヤー方向へ移動
                 toPlayer.y = 0.0f;
                 toPlayer.Normalize();
                 m_Position += toPlayer * (moveSpeed * deltaTime);
 
+                // 向き補正
                 float yaw = atan2f(toPlayer.x, toPlayer.z);
                 yaw += DirectX::XM_PI;
                 m_Rotation.y = yaw;
             }
+            // プレイヤーが近すぎたら後退状態へ
             else if (distanceToPlayer < attackDistance - distanceBuffer)
             {
                 m_State = EnemyState::Retreat;
             }
 
-
-
-
+            // 攻撃可能距離内なら射撃処理
             if (distanceToPlayer <= SHOOTDistance + distanceBuffer &&
                 distanceToPlayer >= attackDistance - distanceBuffer)
             {
                 Vector3 attackDir = toPlayer;
                 attackDir.y = 0.0f;
                 attackDir.Normalize();
+
                 float yaw = atan2f(attackDir.x, attackDir.z);
                 yaw += DirectX::XM_PI;
                 m_Rotation.y = yaw;
@@ -220,93 +201,74 @@ void Enemy::Update()
                 if (attackTimer >= attackInterval)
                 {
                     attackTimer = 0.0f;
-                  //  std::cout << "Enemy attacks the player while chasing!" << std::endl;
-
-
-					enemyattack = true;
-
-
+                    enemyattack = true;  // 弾を発射するフラグ
                 }
             }
             break;
         }
-    // 攻撃モード。射撃フラグを立てて攻撃処理トリガー。
+
+        // 【攻撃状態】その場で射撃、距離によって移動切替
         case EnemyState::Attack:
         {
-            // 面向玩家
+            // プレイヤーの方向に向ける
             toPlayer.y = 0.0f;
             toPlayer.Normalize();
             float yaw = atan2f(toPlayer.x, toPlayer.z);
             yaw += DirectX::XM_PI;
             m_Rotation.y = yaw;
 
-         
-         
-				enemyattack = true;
+            enemyattack = true;
 
-			//	std::cout << "Enemy attacks the player!" << std::endl;
-
-            if (distanceToPlayer > attackDistance + distanceBuffer)
-            {
-              
+            // 状況に応じて追跡 or 後退に遷移
+            if (distanceToPlayer > attackDistance + distanceBuffer) {
                 m_State = EnemyState::Chase;
-            }
-            else if (distanceToPlayer < attackDistance - distanceBuffer)
-            {
-               
+            } else if (distanceToPlayer < attackDistance - distanceBuffer) {
                 m_State = EnemyState::Retreat;
             }
             break;
         }
-   // プレイヤーとの距離が近すぎる場合に後退する。
+
+        // 【後退状態】プレイヤーとの距離が近すぎる場合に後ろへ下がる
         case EnemyState::Retreat:
         {
-
-           
             Vector3 fromPlayer = m_Position - playerPos;
             fromPlayer.y = 0.0f;
             fromPlayer.Normalize();
 
             m_Position += fromPlayer * (retreatSpeed * deltaTime);
-			//std::cout << "Enemy retreats from the player!" << std::endl;
 
-           
             float yaw = atan2f(fromPlayer.x, fromPlayer.z);
             yaw += DirectX::XM_PI;
             m_Rotation.y = yaw;
 
-            
+            // 攻撃距離に戻ったら状態を切り替え
             float newDist = (playerPos - m_Position).Length();
-            if (newDist > attackDistance + distanceBuffer)
-            {
+            if (newDist > attackDistance + distanceBuffer) {
                 m_State = EnemyState::Chase;
-            }
-            else if (newDist <= attackDistance)
-            {
+            } else if (newDist <= attackDistance) {
                 m_State = EnemyState::Attack;
             }
             break;
         }
+
         } // switch (m_State)
     }
-	float halfW = 30.0f * 0.5f;
-	float halfH = 100.0f * 0.5f;
-	float halfD = 30.0f * 0.5f;
-	m_vAABBMin = Vector3(m_Position.x - halfW,
-		m_Position.y - halfH,
-		m_Position.z - halfD);
-	m_vAABBMax = Vector3(m_Position.x + halfW,
-		m_Position.y + halfH,
-		m_Position.z + halfD);
 
+    // 当たり判定ボックス（AABB）の更新
+    float halfW = 30.0f * 0.5f;
+    float halfH = 100.0f * 0.5f;
+    float halfD = 30.0f * 0.5f;
+    m_vAABBMin = Vector3(
+        m_Position.x - halfW,
+        m_Position.y - halfH,
+        m_Position.z - halfD
+    );
+    m_vAABBMax = Vector3(
+        m_Position.x + halfW,
+        m_Position.y + halfH,
+        m_Position.z + halfD
+    );
 }
-//
-
-
-//
-
-//
-//
 
 
 
