@@ -92,139 +92,102 @@ void PUNCH::Init()
 }
 
 void PUNCH::Update()
-
-
-
 {
-
+	// AABB用ハーフサイズ
 	float halfW = 20.0f * 0.5f;
 	float halfH = 10.0f * 0.5f;
 	float halfD = 20.0f * 0.5f;
 
-
+	// プレイヤー情報取得
 	CPlayer *player = GetPlayer();
-    Vector3 *playerRot = player->GetRotation();
-	Vector3* playerPos = player->GetPosition();
+	Vector3 *playerRot = player->GetRotation();
+	Vector3 *playerPos = player->GetPosition();
 
+	// 爆発演出用
 	Explosion* explosion = GetExplosion();
 	Vector3 expos = *explosion->GetExPositions();
 
-
-
+	// 右拳位置をプレイヤーの右方向にオフセット
 	Matrix rotationMatrix = Matrix::CreateRotationY(playerRot->y);
 	Vector3 rightDirection = Vector3::Right;
 	Vector3 offset = Vector3::Transform(rightDirection, rotationMatrix);
 
-
-
-	m_Position = *playerPos + offset*-15;
+	m_Position = *playerPos + offset * -15; // 右拳を左方向に配置
 	m_Position.y = playerPos->y;
-	
 	m_Rotation.y = playerRot->y;
 
-
-	// 
+	// 左拳位置をプレイヤーの左方向にオフセット
 	Matrix rotationMatrix2 = Matrix::CreateRotationY(playerRot->y);
 	Vector3 leftDirection = Vector3::Left;
 	Vector3 offset2 = Vector3::Transform(leftDirection, rotationMatrix);
-
-	m_Position2 = *playerPos + offset2* PUNCHDistance;
+	m_Position2 = *playerPos + offset2 * PUNCHDistance;
 	m_Position2.y = playerPos->y;
-
-	// 
 	m_Rotation2.y = playerRot->y;
 
-
-
-
-
-	// 
+	// 拳の前方向（=攻撃の衝突位置）を計算
 	Matrix PUNCHRotationMatrix = Matrix::CreateRotationY(m_Rotation.y);
 	Vector3 forwordDirection = Vector3::Forward;
 	Vector3 shootOffset = Vector3::Transform(forwordDirection, PUNCHRotationMatrix) * 40.0f;
 	PUNCHPosition = m_Position + shootOffset;
-	
 
-
-
-	// 
 	Matrix PUNCHRotationMatrix2 = Matrix::CreateRotationY(m_Rotation2.y);
 	Vector3 forwardDirection2 = Vector3::Forward;
 	Vector3 shootOffset2 = Vector3::Transform(forwardDirection2, PUNCHRotationMatrix2) * 40.0f;
-
 	PUNCHPosition2 = m_Position2 + shootOffset2;
 
-
-	
+	// X軸回転を保存（抬拳処理用）
 	static float backupRotationX = m_Rotation.x;
 	static float backupRotationX2 = m_Rotation2.x;
 
-
-
+	// マウス右ボタンで「拳を構える」状態に移行
 	if (CDirectInput::GetInstance().GetMouseRButtonCheck()) {
-
 		const float rotationSpeed = 0.1f;
 		float targetRotationx = m_Rotation.x;
-
 		float targetRotationx2 = m_Rotation2.x;
 
-
-		m_Rotation.x = playerRot->x + (targetRotationx - playerRot->x) * rotationSpeed; // 
-		m_Rotation2.x = playerRot->x + (targetRotationx2 - playerRot->x) * rotationSpeed; // 
+		// プレイヤーのX軸角度へ補間（少し上を向くように）
+		m_Rotation.x = playerRot->x + (targetRotationx - playerRot->x) * rotationSpeed;
+		m_Rotation2.x = playerRot->x + (targetRotationx2 - playerRot->x) * rotationSpeed;
 
 		DOTPUNCH = true;
-	
 	}
 	else {
-		m_Rotation.x = backupRotationX; // 
-	
-
-		m_Rotation2.x = backupRotationX2; // 
-	
+		// 離したら元に戻す
+		m_Rotation.x = backupRotationX;
+		m_Rotation2.x = backupRotationX2;
 		DOTPUNCH = false;
 	}
 
-
+	// 左右交互パンチ制御（DOTPUNCHオフ時）
 	if (!DOTPUNCH) {
 		if (currentPUNCH == 1) {
-			UpdatePUNCH();
+			UpdatePUNCH(); // 右パンチ
 			if (!CDirectInput::GetInstance().GetMouseLButtonCheck() && isPUNCH) {
-
 				isPUNCH = false;
-
-				currentPUNCH = 2; //
+				currentPUNCH = 2; // 次は左
 			}
 		}
 		else if (currentPUNCH == 2) {
-			UpdatePUNCH2();
+			UpdatePUNCH2(); // 左パンチ
 			if (!CDirectInput::GetInstance().GetMouseLButtonCheck() && isPUNCH2) {
-
 				isPUNCH2 = false;
-
-				currentPUNCH = 1; // 
+				currentPUNCH = 1; // 次は右
 			}
 		}
 	}
-// パンチ中の処理（位置を前方に移動し、AABB更新）
-	if (isPunching)
-	{
-		// 
+
+	// パンチ（右拳）中：前方に突き出す & AABB更新
+	if (isPunching) {
 		float angle = m_Rotation.y;
-
-		  // プレイヤーの向きに合わせて拳を前方に押し出す
-		Vector3 forwardDir = Vector3(sin(angle), 0.0f, cos(angle)); // 
+		Vector3 forwardDir = Vector3(sin(angle), 0.0f, cos(angle));
 		forwardDir.Normalize();
-		// 
-		// 
-		float moveSpeed = -50.0f;
-		m_Position.x += forwardDir.x * moveSpeed;
-		m_Position.y += forwardDir.y * moveSpeed;
-		m_Position.z += forwardDir.z * moveSpeed;
-		PUNCHPosition.x += forwardDir.x * moveSpeed;
-		PUNCHPosition.y += forwardDir.y * moveSpeed;
-		PUNCHPosition.z += forwardDir.z * moveSpeed;
 
-	// 当たり判定用のAABB更新
+		float moveSpeed = -50.0f;
+
+		// 拳の位置と当たり判定を前方に移動
+		m_Position += forwardDir * moveSpeed;
+		PUNCHPosition += forwardDir * moveSpeed;
+
 		m_vAABBMin = Vector3(
 			PUNCHPosition.x - halfW,
 			PUNCHPosition.y - 10 - halfH,
@@ -233,35 +196,25 @@ void PUNCH::Update()
 			PUNCHPosition.x + halfW,
 			PUNCHPosition.y - 10 + halfH,
 			PUNCHPosition.z + halfD);
-		//
-		punchTimer -= deltaTime; //
-		if (punchTimer <= 0.0f)
-		{
-			// 
+
+		// タイマーで終了を管理
+		punchTimer -= deltaTime;
+		if (punchTimer <= 0.0f) {
 			isPunching = false;
 			m_Position = originalPosition;
 		}
 	}
 
-	if (isPunching2)
-	{
-		// 
+	// パンチ（左拳）中：同上
+	if (isPunching2) {
 		float angle = m_Rotation2.y;
-
-		// 
-		Vector3 forwardDir2 = Vector3(sin(angle), 0.0f, cos(angle)); // 
+		Vector3 forwardDir2 = Vector3(sin(angle), 0.0f, cos(angle));
 		forwardDir2.Normalize();
-		//
-		//
+
 		float moveSpeed2 = -50.0f;
-		m_Position2.x += forwardDir2.x * moveSpeed2;
-		m_Position2.y += forwardDir2.y * moveSpeed2;
-		m_Position2.z += forwardDir2.z * moveSpeed2;
-		PUNCHPosition2.x += forwardDir2.x * moveSpeed2;
-		PUNCHPosition2.y += forwardDir2.y * moveSpeed2;
-		PUNCHPosition2.z += forwardDir2.z * moveSpeed2;
 
-
+		m_Position2 += forwardDir2 * moveSpeed2;
+		PUNCHPosition2 += forwardDir2 * moveSpeed2;
 
 		m_vAABBMin = Vector3(
 			PUNCHPosition2.x - halfW,
@@ -271,19 +224,13 @@ void PUNCH::Update()
 			PUNCHPosition2.x + halfW,
 			PUNCHPosition2.y - 10 + halfH,
 			PUNCHPosition2.z + halfD);
-		// 
-		punchTimer -= deltaTime; // 
-		if (punchTimer <= 0.0f)
-		{
-			//
+
+		punchTimer -= deltaTime;
+		if (punchTimer <= 0.0f) {
 			isPunching2 = false;
 			m_Position2 = originalPosition2;
 		}
 	}
-
-	
-
-
 }
 
 
@@ -350,15 +297,15 @@ void PUNCH::UpdatePUNCH() {
 }
 
 void PUNCH::UpdatePUNCH2() {
-
-
+	
 	if (CDirectInput::GetInstance().GetMouseLButtonCheck()) {
-		// 
-		isPunching2 = true;
-		punchTimer = punchDuration;
-		// 記錄原始位置 (準備未來收回)
-		originalPosition2 = m_Position2;
+		
+		isPunching2 = true;               
+		punchTimer = punchDuration;      
 
-		isPUNCH2 = true;
+		originalPosition2 = m_Position2; // 元の位置を保存（パンチ終了後に戻すため）
+
+		isPUNCH2 = true;                 // パンチ入力済みフラグ（交互パンチ制御用）
 	}
 }
+
