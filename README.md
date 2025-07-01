@@ -58,14 +58,11 @@ HAL大阪の２年制課程にて制作した、3Dロボットアクションゲ
 
 ## 動画・ダウンロード
 - プレイ動画:
-- 
-- https://xgf.nu/iV08U
+
 - https://drive.google.com/file/d/139DJ7kpUWEF8CIcsMiEY360uTwVGH_nD/view?usp=sharing
 
-
 - 完成品ZIP：
-- 
-- https://xgf.nu/o00N6
+
 - https://drive.google.com/drive/folders/1yoLZX_avK8zUT3EPCaLswbLd8MiXHpUk?usp=sharing
 
 ## 👤 担当・実装箇所
